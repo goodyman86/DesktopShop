@@ -1,0 +1,16 @@
+﻿using System.Threading.Tasks;
+
+namespace DesktopShop.Application.Interfaces;
+
+public interface IImageService
+{
+    /// <summary>
+    /// Tải ảnh từ URL, resize về chiều rộng chỉ định, nén chất lượng, và lưu vào thư mục đích.
+    /// </summary>
+    /// <param name="imageUrl">URL ảnh từ bên ngoài.</param>
+    /// <param name="saveFolderPath">Đường dẫn vật lý thư mục lưu file (ví dụ: wwwroot/images/products).</param>
+    /// <param name="maxWidth">Chiều rộng tối đa (pixel). Mặc định 800.</param>
+    /// <param name="quality">Chất lượng nén JPEG (1-100). Mặc định 75.</param>
+    /// <returns>Tên file đã lưu (ví dụ: "abc123.jpg").</returns>
+    Task<string> DownloadResizeAndSaveAsync(string imageUrl, string saveFolderPath, int maxWidth = 800, int quality = 75);
+}

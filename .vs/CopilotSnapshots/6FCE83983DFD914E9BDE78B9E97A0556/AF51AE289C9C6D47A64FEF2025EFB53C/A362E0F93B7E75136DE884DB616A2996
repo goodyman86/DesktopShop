@@ -1,0 +1,40 @@
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using DesktopShop.Domain.Entities;
+using DesktopShop.Domain.Interfaces;
+using DesktopShop.Infrastructure.Data;
+
+namespace DesktopShop.Infrastructure.Repositories;
+
+public class ProductRepository : Repository<Product>, IProductRepository
+{
+    public ProductRepository(ApplicationDbContext context) : base(context) { }
+
+    public async Task<IEnumerable<Product>> GetAllWithCategoryAsync()
+        => await _dbSet.Include(p => p.Category).ToListAsync();
+
+    public async Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId)
+        => await _dbSet.Include(p => p.Category)
+                       .Where(p => p.CategoryId == categoryId && p.IsActive)
+                       .ToListAsync();
+
+    public async Task<IEnumerable<Product>> GetLowStockProductsAsync()
+        => await _dbSet.Include(p => p.Category)
+                       .Where(p => p.StockQuantity <= p.MinStockLevel && p.IsActive)
+                       .ToListAsync();
+
+    public async Task<IEnumerable<Product>> SearchProductsAsync(string keyword)
+        => await _dbSet.Include(p => p.Category)
+                       .Where(p => p.IsActive &&
+                           (p.Name.Contains(keyword) ||
+                            (p.CPU != null && p.CPU.Contains(keyword)) ||
+                            (p.RAM != null && p.RAM.Contains(keyword)) ||
+                            (p.GPU != null && p.GPU.Contains(keyword))))
+                       .ToListAsync();
+
+    public async Task<Product?> GetProductWithCategoryAsync(int id)
+        => await _dbSet.Include(p => p.Category)
+                       .FirstOrDefaultAsync(p => p.Id == id);
+}

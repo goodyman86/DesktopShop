@@ -1,0 +1,87 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1><i class="fa-solid fa-tags me-2"></i>Quản lý Danh Mục</h1>
+        <p>Phân loại Desktop Computer theo danh mục</p>
+    </div>
+    <button class="btn btn-primary-modern" id="btnAddCategory">
+        <i class="fa-solid fa-plus me-1"></i>Thêm danh mục
+    </button>
+</div>
+
+<div class="row g-3" id="categoryGrid">
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+        Đang tải danh mục...
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            var API = '/api';
+
+            function loadCategories() {
+                $.getJSON(API + '/categories')
+                    .done(function (data) {
+                        var cats = Array.isArray(data) ? data : (data.data || data.Data || []);
+                        renderCategories(cats);
+                    })
+                    .fail(function () {
+                        $('#categoryGrid').html('<div class="col-12 text-center py-5 text-danger">Không thể tải dữ liệu</div>');
+                    });
+            }
+
+            function renderCategories(cats) {
+                if (!cats.length) {
+                    $('#categoryGrid').html('<div class="col-12 text-center py-5 text-muted">Chưa có danh mục nào</div>');
+                    return;
+                }
+
+                var colors = ['blue', 'green', 'orange', 'purple'];
+                var icons = ['fa-gamepad', 'fa-building', 'fa-server', 'fa-microchip'];
+                var html = '';
+
+                cats.forEach(function (c, i) {
+                    var id = c.Id || c.id;
+                    var name = c.Name || c.name;
+                    var desc = c.Description || c.description || 'Không có mô tả';
+                    var count = c.ProductCount != null ? c.ProductCount : (c.productCount || 0);
+                    var isActive = c.IsActive !== false && c.isActive !== false;
+                    var colorClass = colors[i % colors.length];
+                    var iconClass = icons[i % icons.length];
+
+                    html += '<div class="col-lg-3 col-md-6 animate-in">' +
+                        '<div class="card-panel" style="cursor:pointer">' +
+                            '<div class="card-panel-body text-center py-4">' +
+                                '<div class="stat-icon ' + colorClass + ' mx-auto mb-3" style="width:60px;height:60px;font-size:1.5rem">' +
+                                    '<i class="fa-solid ' + iconClass + '"></i>' +
+                                '</div>' +
+                                '<h5 class="fw-bold mb-1">' + name + '</h5>' +
+                                '<p class="text-muted mb-2" style="font-size:.8rem">' + desc + '</p>' +
+                                '<span class="badge-status ' + (isActive ? 'badge-completed' : 'badge-cancelled') + '">' +
+                                    (isActive ? 'Hoạt động' : 'Ẩn') +
+                                '</span>' +
+                                '<div class="mt-3">' +
+                                    '<span class="fw-bold fs-4 text-primary">' + count + '</span>' +
+                                    '<span class="text-muted ms-1" style="font-size:.8rem">sản phẩm</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="card-panel-header justify-content-center" style="border-top:1px solid var(--gray-200);border-bottom:none">' +
+                                '<button class="btn btn-sm btn-outline-modern me-2"><i class="fa-solid fa-pen me-1"></i>Sửa</button>' +
+                                '<button class="btn btn-sm btn-outline-modern text-danger"><i class="fa-solid fa-trash me-1"></i>Xóa</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                });
+
+                $('#categoryGrid').html(html);
+            }
+
+            loadCategories();
+        });
+    </script>
+}

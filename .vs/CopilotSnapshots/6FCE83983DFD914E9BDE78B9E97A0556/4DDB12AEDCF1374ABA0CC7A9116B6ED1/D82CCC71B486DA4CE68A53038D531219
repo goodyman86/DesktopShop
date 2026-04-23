@@ -1,0 +1,158 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1><i class="fa-solid fa-gauge-high me-2"></i>Dashboard</h1>
+        <p>Tổng quan hoạt động kinh doanh DesktopShop</p>
+    </div>
+    <div class="dropdown">
+        <button class="btn btn-outline-modern dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-solid fa-file-export me-1"></i>Xuất báo cáo
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+            <li><a class="dropdown-item" href="#" id="btnExportCSV"><i class="fa-solid fa-file-csv me-2 text-success"></i>Xuất Excel / CSV</a></li>
+            <li><a class="dropdown-item" href="#" id="btnExportPDF"><i class="fa-solid fa-file-pdf me-2 text-danger"></i>Xuất PDF</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6 animate-in">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fa-solid fa-dollar-sign"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statRevenue">--</h3>
+                <p>Tổng doanh thu</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 animate-in">
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statOrders">--</h3>
+                <p>Số đơn hàng</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 animate-in">
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fa-solid fa-computer"></i>
+            </div>
+            <div class="stat-info">
+                <h3 id="statProducts">--</h3>
+                <p>Sản phẩm trong kho</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 animate-in">
+        <a href="@Url.Action("Products", "DashboardView")?lowstock=true" style="text-decoration: none; color: inherit;">
+            <div class="stat-card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.12)';" onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                <div class="stat-icon purple">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="statLowStock">--</h3>
+                    <p>Sắp hết hàng</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <!-- Revenue Bar Chart -->
+    <div class="col-lg-8">
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-chart-column me-2"></i>Doanh thu 7 ngày gần nhất</h5>
+            </div>
+            <div class="card-panel-body">
+                <div class="chart-container" style="height:320px;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Category Pie Chart -->
+    <div class="col-lg-4">
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-chart-pie me-2"></i>Danh mục bán chạy</h5>
+            </div>
+            <div class="card-panel-body">
+                <div class="chart-container" style="height:320px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Selling Products + Recent Orders -->
+<div class="row g-3">
+    <!-- Top Selling -->
+    <div class="col-lg-5">
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-ranking-star me-2"></i>Sản phẩm bán chạy</h5>
+            </div>
+            <div class="card-panel-body p-0 table-scroll-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Sản phẩm</th>
+                            <th class="text-end">Đã bán</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topSellingBody">
+                        <tr><td colspan="4" class="text-center py-4 text-muted">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- Recent Orders -->
+    <div class="col-lg-7">
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-clock-rotate-left me-2"></i>Đơn hàng gần đây</h5>
+                <a href="@Url.Action("Orders", "DashboardView")" class="btn btn-sm btn-outline-modern">
+                    Xem tất cả <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+            <div class="card-panel-body p-0 table-scroll-container">
+                <table class="table-modern">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th class="text-end">Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentOrdersBody">
+                        <tr><td colspan="5" class="text-center py-4 text-muted">Đang tải...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/app/dashboard.js"></script>
+}

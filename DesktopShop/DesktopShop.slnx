@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DesktopShop.API/DesktopShop.API.csproj" />
+    <Project Path="src/DesktopShop.Application/DesktopShop.Application.csproj" />
+    <Project Path="src/DesktopShop.Domain/DesktopShop.Domain.csproj" />
+    <Project Path="src/DesktopShop.Infrastructure/DesktopShop.Infrastructure.csproj" />
+    <Project Path="src/DesktopShop.Tests/DesktopShop.Tests.csproj" />
+    <Project Path="src/DesktopShop.Web/DesktopShop.Web.csproj" />
+  </Folder>
+</Solution>

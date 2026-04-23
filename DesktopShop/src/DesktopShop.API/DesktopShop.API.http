@@ -1,0 +1,6 @@
+@DesktopShop.API_HostAddress = http://localhost:5272
+
+GET {{DesktopShop.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,30 @@
+﻿using AutoMapper;
+using DesktopShop.Domain.Entities;
+using DesktopShop.Application.DTOs.Category;
+using DesktopShop.Application.DTOs.Product;
+using DesktopShop.Application.DTOs.Order;
+
+namespace DesktopShop.Application.Mappings;
+
+public class MappingProfile : Profile
+{
+    public MappingProfile()
+    {
+        // Category
+        CreateMap<Category, CategoryDto>()
+            .ForMember(d => d.ProductCount, opt => opt.MapFrom(s => s.Products.Count));
+        CreateMap<CreateCategoryDto, Category>();
+        CreateMap<UpdateCategoryDto, Category>();
+
+        // Product
+        CreateMap<Product, ProductDto>()
+            .ForMember(d => d.CategoryName, opt => opt.MapFrom(s => s.Category != null ? s.Category.Name : string.Empty));
+        CreateMap<CreateProductDto, Product>()
+            .ForMember(d => d.ImageUrl, opt => opt.Ignore());
+        CreateMap<UpdateProductDto, Product>();
+
+        // Order
+        CreateMap<Order, OrderDto>();
+        CreateMap<OrderDetail, OrderDetailDto>();
+    }
+}

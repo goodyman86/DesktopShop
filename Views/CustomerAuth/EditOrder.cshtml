@@ -1,0 +1,256 @@
+@{
+    Layout = "~/Views/Shared/_ShopLayout.cshtml";
+    var order = ViewBag.Order as DesktopShop.Domain.Entities.Order;
+    var products = ViewBag.Products as List<DesktopShop.Domain.Entities.Product>;
+}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="@Url.Action("MyOrders", "CustomerAuth")">Đơn hàng của tôi</a></li>
+        <li class="breadcrumb-item"><a href="@Url.Action("OrderDetail", "CustomerAuth", new { id = order.Id })">@order.OrderCode</a></li>
+        <li class="breadcrumb-item active">Chỉnh sửa</li>
+    </ol>
+</nav>
+
+@if (TempData["OrderError"] != null)
+{
+    <div class="alert alert-danger py-2"><i class="fas fa-exclamation-circle me-1"></i>@TempData["OrderError"]</div>
+}
+
+<h4 class="fw-bold mb-4"><i class="fas fa-edit me-2"></i>Chỉnh sửa đơn hàng #@order.OrderCode</h4>
+
+<form method="post" action="@Url.Action("UpdateOrder", "CustomerAuth")" id="editOrderForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@order.Id" />
+    <input type="hidden" name="productIds" id="productIds" />
+    <input type="hidden" name="quantities" id="quantities" />
+
+    <div class="row g-4">
+        <!-- Products Selection -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-box me-2"></i>Sản phẩm trong đơn hàng</h5>
+
+                    <div id="orderItems">
+                        @{ var idx = 0; }
+                        @foreach (var item in order.OrderDetails)
+                        {
+                            <div class="order-item mb-3 p-3 border rounded" data-index="@idx">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Sản phẩm</label>
+                                        <select class="form-select product-select" data-index="@idx">
+                                            @foreach (var p in products)
+                                            {
+                                                <option value="@p.Id" data-price="@p.Price" data-stock="@p.StockQuantity" @(p.Id == item.ProductId ? "selected" : "")>
+                                                    @p.Name (@p.Price.ToString("#,0")₫ - Tồn: @p.StockQuantity)
+                                                </option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Số lượng</label>
+                                        <input type="number" class="form-control quantity-input" min="1" value="@item.Quantity" data-index="@idx" />
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-semibold">Thành tiền</label>
+                                        <div class="item-total fw-bold text-danger">@item.SubTotal.ToString("#,0")₫</div>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-danger btn-sm w-100 remove-item" data-index="@idx">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            idx++;
+                        }
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary" id="addItemBtn">
+                        <i class="fas fa-plus me-1"></i>Thêm sản phẩm
+                    </button>
+
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Tổng cộng:</h5>
+                            <h4 class="mb-0 text-danger" id="grandTotal">@order.TotalAmount.ToString("#,0")₫</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Info -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin đơn hàng</h5>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Người nhận <span class="text-danger">*</span></label>
+                        <input type="text" name="customerName" class="form-control" value="@order.CustomerName" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Số điện thoại</label>
+                        <input type="tel" name="customerPhone" class="form-control" value="@order.CustomerPhone" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="customerEmail" class="form-control" value="@order.CustomerEmail" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Địa chỉ giao hàng</label>
+                        <textarea name="shippingAddress" class="form-control" rows="2">@order.ShippingAddress</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phương thức thanh toán</label>
+                        <select name="paymentMethod" class="form-select">
+                            <option value="0" @(order.PaymentMethod == DesktopShop.Domain.Enums.PaymentMethod.CashOnDelivery ? "selected" : "")>Tiền mặt (COD)</option>
+                            <option value="1" @(order.PaymentMethod == DesktopShop.Domain.Enums.PaymentMethod.BankTransfer ? "selected" : "")>Chuyển khoản ngân hàng</option>
+                            <option value="2" @(order.PaymentMethod == DesktopShop.Domain.Enums.PaymentMethod.CreditCard ? "selected" : "")>Thẻ tín dụng</option>
+                            <option value="3" @(order.PaymentMethod == DesktopShop.Domain.Enums.PaymentMethod.EWallet ? "selected" : "")>Ví điện tử</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Ghi chú</label>
+                        <textarea name="notes" class="form-control" rows="2">@order.Notes</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-save me-1"></i>Lưu thay đổi
+                    </button>
+
+                    <a href="@Url.Action("OrderDetail", "CustomerAuth", new { id = order.Id })" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times me-1"></i>Hủy
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section scripts {
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        var itemIndex = @idx;
+        var products = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(products.Select(p => new { 
+            id = p.Id, 
+            name = p.Name, 
+            price = p.Price, 
+            stock = p.StockQuantity 
+        })));
+
+        function calculateItemTotal(index) {
+            var $item = $('.order-item[data-index="' + index + '"]');
+            var price = parseFloat($item.find('.product-select option:selected').data('price')) || 0;
+            var quantity = parseInt($item.find('.quantity-input').val()) || 0;
+            var total = price * quantity;
+            $item.find('.item-total').text(total.toLocaleString('vi-VN') + '₫');
+            calculateGrandTotal();
+        }
+
+        function calculateGrandTotal() {
+            var total = 0;
+            $('.order-item').each(function() {
+                var index = $(this).data('index');
+                var price = parseFloat($(this).find('.product-select option:selected').data('price')) || 0;
+                var quantity = parseInt($(this).find('.quantity-input').val()) || 0;
+                total += price * quantity;
+            });
+            $('#grandTotal').text(total.toLocaleString('vi-VN') + '₫');
+        }
+
+        $(document).on('change', '.product-select, .quantity-input', function() {
+            var index = $(this).data('index');
+            calculateItemTotal(index);
+        });
+
+        $('#addItemBtn').on('click', function() {
+            var html = '<div class="order-item mb-3 p-3 border rounded" data-index="' + itemIndex + '">' +
+                '<div class="row align-items-center">' +
+                    '<div class="col-md-6">' +
+                        '<label class="form-label fw-semibold">Sản phẩm</label>' +
+                        '<select class="form-select product-select" data-index="' + itemIndex + '">';
+
+            products.forEach(function(p) {
+                html += '<option value="' + p.id + '" data-price="' + p.price + '" data-stock="' + p.stock + '">' +
+                    p.name + ' (' + p.price.toLocaleString('vi-VN') + '₫ - Tồn: ' + p.stock + ')</option>';
+            });
+
+            html += '</select>' +
+                    '</div>' +
+                    '<div class="col-md-3">' +
+                        '<label class="form-label fw-semibold">Số lượng</label>' +
+                        '<input type="number" class="form-control quantity-input" min="1" value="1" data-index="' + itemIndex + '" />' +
+                    '</div>' +
+                    '<div class="col-md-2">' +
+                        '<label class="form-label fw-semibold">Thành tiền</label>' +
+                        '<div class="item-total fw-bold text-danger">0₫</div>' +
+                    '</div>' +
+                    '<div class="col-md-1">' +
+                        '<label class="form-label">&nbsp;</label>' +
+                        '<button type="button" class="btn btn-danger btn-sm w-100 remove-item" data-index="' + itemIndex + '">' +
+                            '<i class="fas fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+            $('#orderItems').append(html);
+            calculateItemTotal(itemIndex);
+            itemIndex++;
+        });
+
+        $(document).on('click', '.remove-item', function() {
+            if ($('.order-item').length <= 1) {
+                alert('Đơn hàng phải có ít nhất 1 sản phẩm!');
+                return;
+            }
+            $(this).closest('.order-item').remove();
+            calculateGrandTotal();
+        });
+
+        $('#editOrderForm').on('submit', function(e) {
+            var productIds = [];
+            var quantities = [];
+
+            $('.order-item').each(function() {
+                var productId = $(this).find('.product-select').val();
+                var quantity = $(this).find('.quantity-input').val();
+                var stock = $(this).find('.product-select option:selected').data('stock');
+
+                if (parseInt(quantity) > parseInt(stock)) {
+                    alert('Sản phẩm "' + $(this).find('.product-select option:selected').text() + '" không đủ hàng!');
+                    e.preventDefault();
+                    return false;
+                }
+
+                productIds.push(productId);
+                quantities.push(quantity);
+            });
+
+            if (productIds.length === 0) {
+                alert('Đơn hàng phải có ít nhất 1 sản phẩm!');
+                e.preventDefault();
+                return false;
+            }
+
+            $('#productIds').val(productIds.join(','));
+            $('#quantities').val(quantities.join(','));
+        });
+
+        // Initial calculation
+        $('.order-item').each(function() {
+            calculateItemTotal($(this).data('index'));
+        });
+    </script>
+}

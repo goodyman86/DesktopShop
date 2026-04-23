@@ -1,0 +1,17 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using DesktopShop.Application.DTOs.Product;
+
+namespace DesktopShop.Application.Interfaces;
+
+public interface IProductService
+{
+    Task<IEnumerable<ProductDto>> GetAllProductsAsync();
+    Task<ProductDto?> GetProductByIdAsync(int id);
+    Task<IEnumerable<ProductDto>> GetProductsByCategoryAsync(int categoryId);
+    Task<IEnumerable<ProductDto>> GetLowStockProductsAsync();
+    Task<IEnumerable<ProductDto>> SearchProductsAsync(string keyword);
+    Task<ProductDto> CreateProductAsync(CreateProductDto dto);
+    Task<ProductDto?> UpdateProductAsync(UpdateProductDto dto);
+    Task<bool> DeleteProductAsync(int id);
+}

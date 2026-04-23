@@ -1,0 +1,112 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row g-0" style="margin: -24px; min-height: calc(100vh - var(--topbar-h));">
+    <!-- LEFT: Product Grid -->
+    <div class="col-lg-8 p-3" style="background: var(--gray-100); overflow-y: auto; max-height: calc(100vh - var(--topbar-h));">
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm theo tên máy tính..." />
+            </div>
+            <div class="filter-buttons" id="categoryFilters">
+                <button class="btn-outline-modern active" data-category="0">
+                    <i class="fa-solid fa-border-all me-1"></i>Tất cả
+                </button>
+                <!-- Category buttons loaded dynamically -->
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="row g-3" id="productGrid">
+            <div class="col-12 text-center py-5 text-muted">
+                <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+                Đang tải sản phẩm...
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart Sidebar -->
+    <div class="col-lg-4 p-3">
+        <div class="cart-sidebar">
+            <div class="cart-header">
+                <h5><i class="fa-solid fa-cart-shopping me-2"></i>Đơn hàng</h5>
+                <span class="cart-badge" id="cartCount">0</span>
+            </div>
+
+            <div class="cart-body" id="cartBody">
+                <div class="cart-empty">
+                    <i class="fa-solid fa-basket-shopping"></i>
+                    <p>Chưa có sản phẩm nào</p>
+                    <small>Nhấn "Thêm" để thêm sản phẩm vào đơn hàng</small>
+                </div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span class="cart-total-label">Tổng cộng:</span>
+                    <span class="cart-total-value" id="cartTotal">0đ</span>
+                </div>
+
+                <!-- Customer Info (inline) -->
+                <div class="mb-3 form-floating-modern">
+                    <label>Tên khách hàng <span class="text-danger">*</span></label>
+                    <input type="text" id="customerName" placeholder="Nhập tên khách hàng" />
+                </div>
+                <div class="mb-3 form-floating-modern">
+                    <label>Số điện thoại</label>
+                    <input type="text" id="customerPhone" placeholder="Nhập SĐT" />
+                </div>
+                <div class="mb-3 form-floating-modern">
+                    <label>Email</label>
+                    <input type="email" id="customerEmail" placeholder="Nhập email khách hàng" />
+                </div>
+                <div class="mb-3 form-floating-modern">
+                    <label>Địa chỉ giao hàng</label>
+                    <input type="text" id="shippingAddress" placeholder="Nhập địa chỉ giao hàng" />
+                </div>
+                <div class="mb-3 form-floating-modern">
+                    <label>Ghi chú</label>
+                    <textarea id="orderNotes" rows="2" placeholder="Ghi chú đơn hàng (tuỳ chọn)"></textarea>
+                </div>
+                <div class="mb-3 form-floating-modern">
+                    <label>Phương thức thanh toán</label>
+                    <select id="paymentMethod" class="form-select">
+                        <option value="0">Tiền mặt (COD)</option>
+                        <option value="1">Chuyển khoản ngân hàng</option>
+                        <option value="2">Thẻ tín dụng</option>
+                        <option value="3">Ví điện tử</option>
+                    </select>
+                </div>
+
+                <button class="btn-success-modern" id="btnCheckout" disabled>
+                    <i class="fa-solid fa-credit-card me-2"></i>Xác nhận thanh toán
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section styles {
+    <style>
+        /* POS overrides */
+        .page-content { padding: 0 !important; }
+        .col-lg-8 .filter-bar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-radius: 0;
+            margin-bottom: 12px;
+        }
+        .col-lg-8 { scrollbar-width: thin; }
+        .col-lg-8::-webkit-scrollbar { width: 6px; }
+        .col-lg-8::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+    </style>
+}
+
+@section scripts {
+    <script src="~/Scripts/app/sales.js"></script>
+}

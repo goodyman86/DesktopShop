@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\\u0110\u1EA1iH\u1ECDc\\CNTT\\HK_2571\\WEB\\WebApplication1\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F1714611-60F9-4EB7-86E8-ECF54481E97F}|WebApplication1.csproj|d:\\\u0111\u1EA1ih\u1ECDc\\cntt\\hk_2571\\web\\webapplication1\\views\\dashboardview\\products.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{F1714611-60F9-4EB7-86E8-ECF54481E97F}|WebApplication1.csproj|solutionrelative:views\\dashboardview\\products.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Products.cshtml",
+              "DocumentMoniker": "D:\\\u0110\u1EA1iH\u1ECDc\\CNTT\\HK_2571\\WEB\\WebApplication1\\Views\\DashboardView\\Products.cshtml",
+              "RelativeDocumentMoniker": "Views\\DashboardView\\Products.cshtml",
+              "ToolTip": "D:\\\u0110\u1EA1iH\u1ECDc\\CNTT\\HK_2571\\WEB\\WebApplication1\\Views\\DashboardView\\Products.cshtml",
+              "RelativeToolTip": "Views\\DashboardView\\Products.cshtml",
+              "ViewState": "AgIAAIAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-23T08:31:50.206Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

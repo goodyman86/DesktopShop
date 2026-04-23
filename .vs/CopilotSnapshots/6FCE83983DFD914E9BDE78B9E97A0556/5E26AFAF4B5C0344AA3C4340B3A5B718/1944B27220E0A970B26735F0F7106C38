@@ -1,0 +1,93 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using DesktopShop.Application.DTOs.Dashboard;
+using DesktopShop.Application.Interfaces;
+using DesktopShop.Domain.Enums;
+using DesktopShop.Domain.Interfaces;
+
+namespace DesktopShop.Application.Services;
+
+public class DashboardService : IDashboardService
+{
+    private readonly IUnitOfWork _unitOfWork;
+
+    public DashboardService(IUnitOfWork unitOfWork)
+    {
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync()
+    {
+        var allProducts = await _unitOfWork.Products.GetAllAsync();
+        var allOrders = await _unitOfWork.Orders.GetAllAsync();
+        var lowStock = await _unitOfWork.Products.GetLowStockProductsAsync();
+        var productList = allProducts.ToList();
+
+        var completedOrders = allOrders.Where(o => o.Status == OrderStatus.Completed).ToList();
+
+        var summary = new DashboardSummaryDto
+        {
+            TotalProducts = productList.Count,
+            TotalOrders = allOrders.Count(),
+            TotalRevenue = completedOrders.Sum(o => o.TotalAmount),
+            LowStockCount = lowStock.Count(),
+            OutOfStockCount = productList.Count(p => p.StockQuantity == 0)
+        };
+
+        // Top selling: aggregate from all completed order details
+        var orderDetailsGroups = new Dictionary<int, (string Name, int Qty, decimal Revenue)>();
+        foreach (var order in completedOrders)
+        {
+            var fullOrder = await _unitOfWork.Orders.GetOrderWithDetailsAsync(order.Id);
+            if (fullOrder?.OrderDetails == null) continue;
+            foreach (var od in fullOrder.OrderDetails)
+            {
+                if (orderDetailsGroups.TryGetValue(od.ProductId, out var existing))
+                {
+                    orderDetailsGroups[od.ProductId] = (existing.Name, existing.Qty + od.Quantity, existing.Revenue + od.SubTotal);
+                }
+                else
+                {
+                    orderDetailsGroups[od.ProductId] = (od.ProductName, od.Quantity, od.SubTotal);
+                }
+            }
+        }
+
+        summary.TopSellingProducts = orderDetailsGroups
+            .OrderByDescending(x => x.Value.Qty)
+            .Take(5)
+            .Select(x => new TopSellingProductDto
+            {
+                ProductName = x.Value.Name,
+                TotalSold = x.Value.Qty,
+                TotalRevenue = x.Value.Revenue
+            }).ToList();
+
+        return summary;
+    }
+
+    public async Task<SalesChartDto> GetSalesChartDataAsync(int months = 6)
+    {
+        var chart = new SalesChartDto();
+        var now = DateTime.UtcNow;
+
+        for (int i = months - 1; i >= 0; i--)
+        {
+            var month = now.AddMonths(-i);
+            var from = new DateTime(month.Year, month.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var to = from.AddMonths(1).AddTicks(-1);
+
+            var orders = await _unitOfWork.Orders.GetOrdersByDateRangeAsync(from, to);
+            var revenue = orders
+                .Where(o => o.Status == OrderStatus.Completed)
+                .Sum(o => o.TotalAmount);
+
+            chart.Labels.Add(month.ToString("MM/yyyy"));
+            chart.Values.Add(revenue);
+        }
+
+        return chart;
+    }
+}

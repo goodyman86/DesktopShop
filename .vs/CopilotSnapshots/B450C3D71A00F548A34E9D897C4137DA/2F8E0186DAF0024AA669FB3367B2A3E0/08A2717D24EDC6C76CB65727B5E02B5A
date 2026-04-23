@@ -1,0 +1,14 @@
+﻿namespace DesktopShop.Domain.Enums;
+
+public enum PaymentMethod
+{
+    CashOnDelivery = 0,
+    BankTransfer = 1,
+    CreditCard = 2,
+    EWallet = 3
+}
+<Reference Include="Microsoft.Bcl.AsyncInterfaces">
+  <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.1.1.1\lib\netstandard2.0\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+</Reference><Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+  <HintPath>packages\Microsoft.Bcl.HashCode.1.1.1\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
+</Reference>

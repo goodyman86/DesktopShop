@@ -1,0 +1,258 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
+using DesktopShop.Application.DTOs.Order;
+using DesktopShop.Application.Interfaces;
+using DesktopShop.Domain.Entities;
+using DesktopShop.Domain.Enums;
+using DesktopShop.Domain.Interfaces;
+
+namespace DesktopShop.Application.Services;
+
+public class OrderService : IOrderService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+
+    public OrderService(IUnitOfWork unitOfWork, IMapper mapper)
+    {
+        _unitOfWork = unitOfWork;
+        _mapper = mapper;
+    }
+
+    public async Task<IEnumerable<OrderDto>> GetAllOrdersAsync()
+    {
+        var orders = await _unitOfWork.Orders.GetAllAsync();
+        return _mapper.Map<IEnumerable<OrderDto>>(orders);
+    }
+
+    public async Task<OrderDto?> GetOrderByIdAsync(int id)
+    {
+        var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(id);
+        return order == null ? null : _mapper.Map<OrderDto>(order);
+    }
+
+    /// <summary>
+    /// Creates an order within a DB transaction:
+    /// 1. Check stock for every item
+    /// 2. Create Order + OrderDetails
+    /// 3. Deduct stock from Products
+    /// If any step fails → rollback
+    /// </summary>
+    public async Task<OrderDto> CreateOrderAsync(CreateOrderDto dto, string? userId)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            // Step 1: Validate stock availability for ALL items first
+            var orderDetails = new List<OrderDetail>();
+            decimal totalAmount = 0;
+
+            foreach (var item in dto.Items)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                if (product == null)
+                    throw new InvalidOperationException($"Sản phẩm với ID {item.ProductId} không tồn tại.");
+
+                if (product.StockQuantity < item.Quantity)
+                    throw new InvalidOperationException(
+                        $"Sản phẩm '{product.Name}' không đủ hàng. Tồn kho: {product.StockQuantity}, Yêu cầu: {item.Quantity}.");
+
+                var subTotal = product.Price * item.Quantity;
+                totalAmount += subTotal;
+
+                orderDetails.Add(new OrderDetail
+                {
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    UnitPrice = product.Price,
+                    Quantity = item.Quantity,
+                    SubTotal = subTotal
+                });
+            }
+
+            // Step 2: Create order
+            var orderCode = await _unitOfWork.Orders.GenerateOrderCodeAsync();
+            var order = new Order
+            {
+                OrderCode = orderCode,
+                CustomerName = dto.CustomerName,
+                CustomerPhone = dto.CustomerPhone,
+                CustomerEmail = dto.CustomerEmail,
+                ShippingAddress = dto.ShippingAddress,
+                TotalAmount = totalAmount,
+                Status = OrderStatus.Pending,
+                PaymentMethod = dto.PaymentMethod,
+                Notes = dto.Notes,
+                CreatedByUserId = userId,
+                OrderDetails = orderDetails
+            };
+
+            await _unitOfWork.Orders.AddAsync(order);
+
+            // Step 3: Deduct stock
+            foreach (var item in dto.Items)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                product!.StockQuantity -= item.Quantity;
+                _unitOfWork.Products.Update(product);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            return _mapper.Map<OrderDto>(order);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Update an existing order. Only allowed if order status is Pending.
+    /// 1. Restore stock from old order items
+    /// 2. Validate new items stock
+    /// 3. Update order info and items
+    /// 4. Deduct stock for new items
+    /// </summary>
+    public async Task<OrderDto?> UpdateOrderAsync(int id, UpdateOrderDto dto)
+    {
+        var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(id);
+        if (order == null) return null;
+
+        // Only allow update if order is still pending
+        if (order.Status != OrderStatus.Pending)
+            throw new InvalidOperationException("Chỉ có thể chỉnh sửa đơn hàng đang ở trạng thái 'Chờ xử lý'.");
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            // Step 1: Restore stock from old order details
+            foreach (var oldDetail in order.OrderDetails)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(oldDetail.ProductId);
+                if (product != null)
+                {
+                    product.StockQuantity += oldDetail.Quantity;
+                    _unitOfWork.Products.Update(product);
+                }
+            }
+
+            // Step 2: Validate new items stock
+            var newOrderDetails = new List<OrderDetail>();
+            decimal newTotalAmount = 0;
+
+            foreach (var item in dto.Items)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                if (product == null)
+                    throw new InvalidOperationException($"Sản phẩm với ID {item.ProductId} không tồn tại.");
+
+                if (product.StockQuantity < item.Quantity)
+                    throw new InvalidOperationException(
+                        $"Sản phẩm '{product.Name}' không đủ hàng. Tồn kho: {product.StockQuantity}, Yêu cầu: {item.Quantity}.");
+
+                var subTotal = product.Price * item.Quantity;
+                newTotalAmount += subTotal;
+
+                newOrderDetails.Add(new OrderDetail
+                {
+                    OrderId = order.Id,
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    UnitPrice = product.Price,
+                    Quantity = item.Quantity,
+                    SubTotal = subTotal
+                });
+            }
+
+            // Step 3: Update order information
+            order.CustomerName = dto.CustomerName;
+            order.CustomerPhone = dto.CustomerPhone;
+            order.CustomerEmail = dto.CustomerEmail;
+            order.ShippingAddress = dto.ShippingAddress;
+            order.Notes = dto.Notes;
+            order.PaymentMethod = dto.PaymentMethod;
+            order.TotalAmount = newTotalAmount;
+            order.UpdatedAt = DateTime.UtcNow;
+
+            // Clear old order details and add new ones
+            order.OrderDetails.Clear();
+            foreach (var newDetail in newOrderDetails)
+            {
+                order.OrderDetails.Add(newDetail);
+            }
+
+            _unitOfWork.Orders.Update(order);
+
+            // Step 4: Deduct stock for new items
+            foreach (var item in dto.Items)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+                product!.StockQuantity -= item.Quantity;
+                _unitOfWork.Products.Update(product);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            return _mapper.Map<OrderDto>(order);
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateOrderStatusAsync(int id, int status)
+    {
+        var order = await _unitOfWork.Orders.GetByIdAsync(id);
+        if (order == null) return false;
+
+        order.Status = (OrderStatus)status;
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteOrderAsync(int id)
+    {
+        var order = await _unitOfWork.Orders.GetOrderWithDetailsAsync(id);
+        if (order == null) return false;
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            // Restore stock for each order detail
+            foreach (var detail in order.OrderDetails)
+            {
+                var product = await _unitOfWork.Products.GetByIdAsync(detail.ProductId);
+                if (product != null)
+                {
+                    product.StockQuantity += detail.Quantity;
+                    _unitOfWork.Products.Update(product);
+                }
+            }
+
+            _unitOfWork.Orders.Delete(order);
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            return true;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<OrderDto>> GetOrdersByDateRangeAsync(DateTime from, DateTime to)
+    {
+        var orders = await _unitOfWork.Orders.GetOrdersByDateRangeAsync(from, to);
+        return _mapper.Map<IEnumerable<OrderDto>>(orders);
+    }
+}

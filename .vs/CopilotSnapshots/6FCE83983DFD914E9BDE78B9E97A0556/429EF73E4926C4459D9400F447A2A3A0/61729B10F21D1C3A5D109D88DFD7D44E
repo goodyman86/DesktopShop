@@ -1,0 +1,70 @@
+﻿using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using DesktopShop.Infrastructure.Data;
+using DesktopShop.Infrastructure.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace WebApplication1.Controllers
+{
+    public class AuthController : Controller
+    {
+        public ActionResult Login()
+        {
+            if (Session["AdminId"] != null)
+                return RedirectToAction("Index", "DashboardView");
+
+            ViewBag.Title = "Đăng nhập";
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Login(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                ViewBag.Error = "Vui lòng nhập đầy đủ thông tin.";
+                ViewBag.Title = "Đăng nhập";
+                return View();
+            }
+
+            var connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+            var hash = IdentitySeed.HashPassword(password);
+
+            using (var connection = new SqlConnection(connectionString))
+            {
+                var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+                optionsBuilder.UseSqlServer(connection);
+
+                using (var context = new ApplicationDbContext(optionsBuilder.Options))
+                {
+                    var admin = context.AdminUsers
+                        .FirstOrDefault(u => u.Username == username && u.PasswordHash == hash && u.IsActive);
+
+                    if (admin != null)
+                    {
+                        Session["AdminId"] = admin.Id;
+                        Session["AdminName"] = admin.FullName;
+                        Session["AdminUsername"] = admin.Username;
+                        return RedirectToAction("Index", "DashboardView");
+                    }
+                }
+            }
+
+            ViewBag.Error = "Tên đăng nhập hoặc mật khẩu không đúng.";
+            ViewBag.Username = username;
+            ViewBag.Title = "Đăng nhập";
+            return View();
+        }
+
+        public ActionResult Logout()
+        {
+            Session.Clear();
+            Session.Abandon();
+            return RedirectToAction("Login");
+        }
+    }
+}

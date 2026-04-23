@@ -1,0 +1,10 @@
+﻿using System.Threading.Tasks;
+using DesktopShop.Application.DTOs.Dashboard;
+
+namespace DesktopShop.Application.Interfaces;
+
+public interface IDashboardService
+{
+    Task<DashboardSummaryDto> GetDashboardSummaryAsync();
+    Task<SalesChartDto> GetSalesChartDataAsync(int months = 6);
+}

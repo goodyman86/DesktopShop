@@ -1,0 +1,18 @@
+﻿{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=DesktopShopDb;Trusted_Connection=True;MultipleActiveResultSets=true"
+  },
+  "Jwt": {
+    "Key": "DesktopShop_SuperSecret_Key_2024_Must_Be_Long_Enough_32chars!",
+    "Issuer": "DesktopShop.API",
+    "Audience": "DesktopShop.Web",
+    "ExpireMinutes": 60
+  }
+}

@@ -1,0 +1,158 @@
+﻿@using DesktopShop.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title - DesktopShop</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+
+    <!-- Custom Admin CSS -->
+    <link rel="stylesheet" href="~/Content/admin.css" />
+
+    @RenderSection("styles", required: false)
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-desktop"></i>
+            <span>DesktopShop</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="@Url.Action("Index", "DashboardView")" class="sidebar-link @(ViewBag.ActivePage == "Dashboard" ? "active" : "")">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="@Url.Action("Index", "Sales")" class="sidebar-link @(ViewBag.ActivePage == "Sales" ? "active" : "")">
+                <i class="fa-solid fa-cash-register"></i>
+                <span>Bán Hàng (POS)</span>
+            </a>
+            <a href="@Url.Action("Products", "DashboardView")" class="sidebar-link @(ViewBag.ActivePage == "Products" ? "active" : "")">
+                <i class="fa-solid fa-computer"></i>
+                <span>Sản Phẩm</span>
+            </a>
+            <a href="@Url.Action("Orders", "DashboardView")" class="sidebar-link @(ViewBag.ActivePage == "Orders" ? "active" : "")">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Đơn Hàng</span>
+            </a>
+            <a href="@Url.Action("Categories", "DashboardView")" class="sidebar-link @(ViewBag.ActivePage == "Categories" ? "active" : "")">
+                <i class="fa-solid fa-tags"></i>
+                <span>Danh Mục</span>
+            </a>
+            <a href="@Url.Action("Revenue", "DashboardView")" class="sidebar-link @(ViewBag.ActivePage == "Revenue" ? "active" : "")">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Doanh Thu</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="@Url.Action("Index", "Home")" class="sidebar-link">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Về Trang Chủ</span>
+            </a>
+            <a href="@Url.Action("Logout", "Auth")" class="sidebar-link" style="color:var(--danger)" onclick="return confirm('Bạn có chắc muốn đăng xuất?')">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Đăng xuất</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <!-- Top Navbar -->
+        <header class="topbar">
+            <button class="btn btn-link sidebar-toggle" id="sidebarToggle">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="topbar-right">
+                <span class="topbar-clock" id="topbarClock"></span>
+                <div class="topbar-user dropdown">
+                    <a href="#" class="d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false" style="color: inherit;">
+                        @{
+                            var adminId = Session["AdminId"] as int?;
+                            string avatarUrl = null;
+                            if (adminId.HasValue)
+                            {
+                                using (-- Run this script first
+Scripts\AddAvatarColumn.sqlvar connStr = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString)
+                                {
+                                    using (var conn = new System.Data.SqlClient.SqlConnection(connStr))
+                                    {
+                                        var optBuilder = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<DesktopShop.Infrastructure.Data.ApplicationDbContext>();
+                                        optBuilder.UseSqlServer(conn);
+                                        using (var ctx = new DesktopShop.Infrastructure.Data.ApplicationDbContext(optBuilder.Options))
+                                        {
+                                            var admin = ctx.Customers.FirstOrDefault(c => c.Id == adminId.Value);
+                                            avatarUrl = admin?.AvatarUrl;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        @if (!string.IsNullOrEmpty(avatarUrl))
+                        {
+                            <img src="@avatarUrl" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;" alt="Avatar" />
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-circle-user me-2"></i>
+                        }
+                        <span>@(Session["AdminName"] ?? "Admin")</span>
+                        <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem;"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 200px;">
+                        <li>
+                            <a class="dropdown-item" href="@Url.Action("Profile", "Auth")">
+                                <i class="fa-solid fa-user me-2"></i>Thông tin tài khoản
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="@Url.Action("Logout", "Auth")" onclick="return confirm('Bạn có chắc muốn đăng xuất?')">
+                                <i class="fa-solid fa-right-from-bracket me-2"></i>Đăng xuất
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="page-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap 5 Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- jsPDF (for dashboard PDF export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+
+    <!-- Shared JS Utilities -->
+    <script src="~/Scripts/app/helpers.js"></script>
+    <script src="~/Scripts/app/layout.js"></script>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

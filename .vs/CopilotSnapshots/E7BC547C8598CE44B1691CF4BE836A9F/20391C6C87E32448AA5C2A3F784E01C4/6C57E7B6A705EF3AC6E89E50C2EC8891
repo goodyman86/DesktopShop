@@ -1,0 +1,31 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using DesktopShop.Application.DTOs.Dashboard;
+using DesktopShop.Application.Interfaces;
+
+namespace DesktopShop.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DashboardController : ControllerBase
+{
+    private readonly IDashboardService _dashboardService;
+
+    public DashboardController(IDashboardService dashboardService)
+    {
+        _dashboardService = dashboardService;
+    }
+
+    [HttpGet("summary")]
+    public async Task<ActionResult<DashboardSummaryDto>> GetSummary()
+    {
+        var summary = await _dashboardService.GetDashboardSummaryAsync();
+        return Ok(summary);
+    }
+
+    [HttpGet("sales-chart")]
+    public async Task<ActionResult<SalesChartDto>> GetSalesChart([FromQuery] int months = 6)
+    {
+        var chart = await _dashboardService.GetSalesChartDataAsync(months);
+        return Ok(chart);
+    }
+}

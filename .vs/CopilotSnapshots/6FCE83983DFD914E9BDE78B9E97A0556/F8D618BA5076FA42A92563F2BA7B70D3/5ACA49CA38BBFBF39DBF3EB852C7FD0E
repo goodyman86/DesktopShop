@@ -1,0 +1,281 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1><i class="fa-solid fa-tags me-2"></i>Quản lý Danh Mục</h1>
+        <p>Phân loại Desktop Computer theo danh mục</p>
+    </div>
+    <button class="btn btn-primary-modern" id="btnAddCategory">
+        <i class="fa-solid fa-plus me-1"></i>Thêm danh mục
+    </button>
+</div>
+
+<div class="row g-3" id="categoryGrid">
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 d-block"></i>
+        Đang tải danh mục...
+    </div>
+</div>
+
+<!-- Product List Panel -->
+<div id="categoryProductsPanel" class="card-panel mt-3" style="display:none">
+    <div class="card-panel-header d-flex align-items-center justify-content-between">
+        <h6 class="fw-bold mb-0">
+            <i class="fa-solid fa-boxes-stacked me-2"></i>
+            Sản phẩm trong danh mục: <span id="cpPanelCatName" class="text-primary"></span>
+        </h6>
+        <button class="btn btn-sm btn-outline-modern" id="btnCloseProductsPanel">
+            <i class="fa-solid fa-xmark me-1"></i>Đóng
+        </button>
+    </div>
+    <div class="card-panel-body p-0">
+        <table class="table-modern">
+            <thead>
+                <tr>
+                    <th style="width:50px">ID</th>
+                    <th>Tên sản phẩm</th>
+                    <th>CPU</th>
+                    <th>RAM</th>
+                    <th>GPU</th>
+                    <th class="text-end">Giá</th>
+                    <th class="text-center">Tồn kho</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="cpTableBody">
+                <tr><td colspan="8" class="text-center py-4 text-muted">Đang tải...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa Danh Mục -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background:var(--gray-50);border:1px solid var(--gray-200)">
+            <div class="modal-header" style="border-bottom:1px solid var(--gray-200)">
+                <h5 class="modal-title fw-bold" id="categoryModalLabel">Thêm danh mục</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="catName" required placeholder="Nhập tên danh mục" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea class="form-control" id="catDescription" rows="3" placeholder="Nhập mô tả danh mục"></textarea>
+                    </div>
+                    <div class="mb-3" id="catIsActiveGroup" style="display:none">
+                        <label class="form-label fw-semibold">Trạng thái</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="catIsActive" checked />
+                            <label class="form-check-label" for="catIsActive">Hoạt động</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--gray-200)">
+                <button type="button" class="btn btn-outline-modern" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary-modern" id="btnSaveCategory">
+                    <i class="fa-solid fa-check me-1"></i>Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            var API = '/api';
+            var editingId = null;
+            var categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+
+            // --- Load & Render ---
+            function loadCategories() {
+                $.getJSON(API + '/categories')
+                    .done(function (data) {
+                        var cats = Array.isArray(data) ? data : (data.data || []);
+                        renderCategories(cats);
+                    })
+                    .fail(function () {
+                        $('#categoryGrid').html('<div class="col-12 text-center py-5 text-danger">Không thể tải dữ liệu</div>');
+                    });
+            }
+
+            function renderCategories(cats) {
+                if (!cats.length) {
+                    $('#categoryGrid').html('<div class="col-12 text-center py-5 text-muted">Chưa có danh mục nào</div>');
+                    return;
+                }
+
+                var colors = ['blue', 'green', 'orange', 'purple'];
+                var icons = ['fa-gamepad', 'fa-building', 'fa-server', 'fa-microchip'];
+                var html = '';
+
+                cats.forEach(function (c, i) {
+                    var colorClass = colors[i % colors.length];
+                    var iconClass = icons[i % icons.length];
+
+                    html += '<div class="col-lg-3 col-md-6 animate-in" data-id="' + c.id + '">' +
+                        '<div class="card-panel" style="cursor:pointer">' +
+                            '<div class="card-panel-body text-center py-4">' +
+                                '<div class="stat-icon ' + colorClass + ' mx-auto mb-3" style="width:60px;height:60px;font-size:1.5rem">' +
+                                    '<i class="fa-solid ' + iconClass + '"></i>' +
+                                '</div>' +
+                                '<h5 class="fw-bold mb-1">' + c.name + '</h5>' +
+                                '<p class="text-muted mb-2" style="font-size:.8rem">' + (c.description || 'Không có mô tả') + '</p>' +
+                                '<span class="badge-status ' + (c.isActive ? 'badge-completed' : 'badge-cancelled') + '">' +
+                                    (c.isActive ? 'Hoạt động' : 'Ẩn') +
+                                '</span>' +
+                                '<div class="mt-3">' +
+                                    '<span class="fw-bold fs-4 text-primary">' + (c.productCount || 0) + '</span>' +
+                                    '<span class="text-muted ms-1" style="font-size:.8rem">sản phẩm</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="card-panel-header justify-content-center" style="border-top:1px solid var(--gray-200);border-bottom:none">' +
+                                '<button class="btn btn-sm btn-outline-modern me-2 btn-edit-cat"><i class="fa-solid fa-pen me-1"></i>Sửa</button>' +
+                                '<button class="btn btn-sm btn-outline-modern text-danger btn-delete-cat"><i class="fa-solid fa-trash me-1"></i>Xóa</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                });
+
+                $('#categoryGrid').html(html);
+            }
+
+            // --- Form helpers ---
+            function resetForm() {
+                editingId = null;
+                $('#categoryModalLabel').text('Thêm danh mục');
+                $('#catName').val('');
+                $('#catDescription').val('');
+                $('#catIsActive').prop('checked', true);
+                $('#catIsActiveGroup').hide();
+            }
+
+            // --- Add ---
+            $('#btnAddCategory').on('click', function () {
+                resetForm();
+                categoryModal.show();
+            });
+
+            // --- Edit ---
+            $('#categoryGrid').on('click', '.btn-edit-cat', function (e) {
+                e.stopPropagation();
+                var catId = $(this).closest('[data-id]').data('id');
+                $.getJSON(API + '/categories/' + catId)
+                    .done(function (c) {
+                        editingId = c.id;
+                        $('#categoryModalLabel').text('Sửa danh mục');
+                        $('#catName').val(c.name);
+                        $('#catDescription').val(c.description || '');
+                        $('#catIsActive').prop('checked', c.isActive);
+                        $('#catIsActiveGroup').show();
+                        categoryModal.show();
+                    })
+                    .fail(function () {
+                        showToast('Không thể tải thông tin danh mục', 'error');
+                    });
+            });
+
+            // --- Save (Add / Edit) ---
+            $('#btnSaveCategory').on('click', function () {
+                var name = $('#catName').val().trim();
+                if (!name) {
+                    showToast('Vui lòng nhập tên danh mục', 'error');
+                    return;
+                }
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Đang lưu...');
+
+                if (editingId) {
+                    // Update
+                    $.ajax({
+                        url: API + '/categories/' + editingId,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            id: editingId,
+                            name: name,
+                            description: $('#catDescription').val().trim() || null,
+                            isActive: $('#catIsActive').is(':checked')
+                        })
+                    })
+                    .done(function () {
+                        categoryModal.hide();
+                        showToast('Cập nhật danh mục thành công!', 'success');
+                        loadCategories();
+                    })
+                    .fail(function (xhr) {
+                        showToast('Lỗi: ' + (xhr.responseJSON && xhr.responseJSON.message || 'Không thể cập nhật'), 'error');
+                    })
+                    .always(function () {
+                        $btn.prop('disabled', false).html('<i class="fa-solid fa-check me-1"></i>Lưu');
+                    });
+                } else {
+                    // Create
+                    $.ajax({
+                        url: API + '/categories',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            name: name,
+                            description: $('#catDescription').val().trim() || null
+                        })
+                    })
+                    .done(function () {
+                        categoryModal.hide();
+                        showToast('Thêm danh mục thành công!', 'success');
+                        loadCategories();
+                    })
+                    .fail(function (xhr) {
+                        showToast('Lỗi: ' + (xhr.responseJSON && xhr.responseJSON.message || 'Không thể thêm'), 'error');
+                    })
+                    .always(function () {
+                        $btn.prop('disabled', false).html('<i class="fa-solid fa-check me-1"></i>Lưu');
+                    });
+                }
+            });
+
+            // --- Delete ---
+            $('#categoryGrid').on('click', '.btn-delete-cat', function (e) {
+                e.stopPropagation();
+                var $card = $(this).closest('[data-id]');
+                var catId = $card.data('id');
+                var catName = $card.find('h5').text();
+
+                Swal.fire({
+                    title: 'Xóa danh mục?',
+                    html: 'Bạn có chắc muốn xóa danh mục <strong>' + catName + '</strong>?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    confirmButtonText: '<i class="fa-solid fa-trash me-1"></i>Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: API + '/categories/' + catId,
+                            method: 'DELETE'
+                        })
+                        .done(function () {
+                            showToast('Đã xóa danh mục thành công!', 'success');
+                            loadCategories();
+                        })
+                        .fail(function (xhr) {
+                            showToast('Lỗi: ' + (xhr.responseJSON && xhr.responseJSON.message || 'Không thể xóa danh mục'), 'error');
+                        });
+                    }
+                });
+            });
+
+            loadCategories();
+        });
+    </script>
+}

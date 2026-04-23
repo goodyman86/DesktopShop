@@ -1,0 +1,301 @@
+﻿@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    ViewBag.ActivePage = "Profile";
+}
+
+<div class="page-header">
+    <h1><i class="fa-solid fa-user-shield me-2"></i>Thông tin tài khoản Admin</h1>
+    <p>Quản lý thông tin cá nhân và bảo mật tài khoản</p>
+</div>
+
+<div class="row">
+    <!-- Profile Information -->
+    <div class="col-lg-8">
+        <div class="card-panel mb-4">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-user me-2"></i>Thông tin cá nhân</h5>
+            </div>
+            <div class="card-panel-body">
+                @if (ViewBag.Success != null)
+                {
+                    <div class="alert alert-success py-2 mb-3">
+                        <i class="fa-solid fa-check-circle me-1"></i>@ViewBag.Success
+                    </div>
+                }
+
+                @if (ViewBag.Error != null)
+                {
+                    <div class="alert alert-danger py-2 mb-3">
+                        <i class="fa-solid fa-exclamation-circle me-1"></i>@ViewBag.Error
+                    </div>
+                }
+
+                <form method="post" action="@Url.Action("UpdateProfile", "Auth")">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tên đăng nhập</label>
+                            <input type="text" class="form-control" value="@ViewBag.Admin.Username" disabled />
+                            <small class="text-muted">Tên đăng nhập không thể thay đổi</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Vai trò</label>
+                            <input type="text" class="form-control" value="@ViewBag.Admin.Role" disabled />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="fullName" value="@ViewBag.Admin.FullName" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" value="@ViewBag.Admin.Email" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số điện thoại</label>
+                            <input type="text" class="form-control" name="phone" value="@ViewBag.Admin.Phone" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Địa chỉ</label>
+                            <textarea class="form-control" name="address" rows="2">@ViewBag.Admin.Address</textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary-modern">
+                            <i class="fa-solid fa-floppy-disk me-1"></i>Cập nhật thông tin
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-lock me-2"></i>Đổi mật khẩu</h5>
+            </div>
+            <div class="card-panel-body">
+                @if (ViewBag.PasswordSuccess != null)
+                {
+                    <div class="alert alert-success py-2 mb-3">
+                        <i class="fa-solid fa-check-circle me-1"></i>@ViewBag.PasswordSuccess
+                    </div>
+                }
+
+                @if (ViewBag.PasswordError != null)
+                {
+                    <div class="alert alert-danger py-2 mb-3">
+                        <i class="fa-solid fa-exclamation-circle me-1"></i>@ViewBag.PasswordError
+                    </div>
+                }
+
+                <form method="post" action="@Url.Action("ChangePassword", "Auth")">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật khẩu hiện tại <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="currentPassword" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="newPassword" minlength="6" required />
+                        <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Xác nhận mật khẩu mới <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" name="confirmNewPassword" minlength="6" required />
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary-modern">
+                            <i class="fa-solid fa-key me-1"></i>Đổi mật khẩu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Summary -->
+    <div class="col-lg-4">
+        <div class="card-panel">
+            <div class="card-panel-header">
+                <h5><i class="fa-solid fa-info-circle me-2"></i>Tóm tắt tài khoản</h5>
+            </div>
+            <div class="card-panel-body">
+                <div class="d-flex flex-column align-items-center mb-3">
+                    <div class="position-relative mb-3">
+                        <div id="avatarPreview" class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; font-size: 2.5rem; overflow: hidden; cursor: pointer;" onclick="document.getElementById('avatarInput').click();" title="Nhấn để thay đổi ảnh">
+                            @if (!string.IsNullOrEmpty(ViewBag.Admin.AvatarUrl))
+                            {
+                                <img src="@ViewBag.Admin.AvatarUrl" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" />
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-user-shield"></i>
+                            }
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary rounded-circle position-absolute" style="bottom: 0; right: 0; width: 32px; height: 32px; padding: 0;" onclick="document.getElementById('avatarInput').click();" title="Thay đổi ảnh">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                        <input type="file" id="avatarInput" accept=".jpg,.jpeg,.png,.webp" style="display: none;" />
+                    </div>
+                    <h5 class="mb-0 text-center">@ViewBag.Admin.FullName</h5>
+                    <p class="text-muted mb-0 small">@ViewBag.Admin.Username</p>
+                </div>
+
+                <hr />
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">ID Tài khoản:</span>
+                        <span class="fw-semibold">#@ViewBag.Admin.Id</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Vai trò:</span>
+                        <span class="badge bg-danger">@ViewBag.Admin.Role</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Trạng thái:</span>
+                        @if (ViewBag.Admin.IsActive)
+                        {
+                            <span class="badge bg-success">Hoạt động</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Không hoạt động</span>
+                        }
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="mb-2">
+                    <small class="text-muted d-flex align-items-center mb-1">
+                        <i class="fa-solid fa-envelope me-2"></i>
+                        @ViewBag.Admin.Email
+                    </small>
+                    @if (!string.IsNullOrEmpty(ViewBag.Admin.Phone))
+                    {
+                        <small class="text-muted d-flex align-items-center">
+                            <i class="fa-solid fa-phone me-2"></i>
+                            @ViewBag.Admin.Phone
+                        </small>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card-panel mt-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="card-panel-body text-center py-4">
+                <i class="fa-solid fa-shield-halved fa-3x mb-3" style="opacity: 0.9;"></i>
+                <h6 class="mb-2">Bảo mật tài khoản</h6>
+                <p class="small mb-0" style="opacity: 0.9;">
+                    Thay đổi mật khẩu định kỳ để bảo vệ tài khoản của bạn
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(function () {
+            // Avatar upload handling
+            $('#avatarInput').on('change', function () {
+                var file = this.files[0];
+                if (!file) return;
+
+                // Validate file size (2MB max)
+                if (file.size > 2 * 1024 * 1024) {
+                    Swal.fire('Lỗi', 'Kích thước file không được vượt quá 2MB.', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                // Validate file type
+                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    Swal.fire('Lỗi', 'Chỉ chấp nhận file ảnh (.jpg, .jpeg, .png, .webp).', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                // Preview image
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#avatarPreview').html('<img src="' + e.target.result + '" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" />');
+                };
+                reader.readAsDataURL(file);
+
+                // Upload to server
+                var formData = new FormData();
+                formData.append('file', file);
+
+                Swal.fire({
+                    title: 'Đang tải lên...',
+                    text: 'Vui lòng đợi',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/api/users/upload-avatar',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                }).done(function (res) {
+                    // Update avatar URL in database
+                    $.ajax({
+                        url: '@Url.Action("UpdateAvatar", "Auth")',
+                        type: 'POST',
+                        data: { avatarUrl: res.avatarUrl },
+                        headers: {
+                            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                        }
+                    }).done(function () {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thành công!',
+                            text: 'Đã cập nhật ảnh đại diện.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }).fail(function () {
+                        Swal.fire('Lỗi', 'Không thể cập nhật ảnh đại diện.', 'error');
+                    });
+                }).fail(function (xhr) {
+                    var msg = 'Lỗi không xác định';
+                    if (xhr.responseJSON) msg = xhr.responseJSON.message || xhr.responseJSON.Message || JSON.stringify(xhr.responseJSON);
+                    Swal.fire('Lỗi', 'Upload ảnh thất bại: ' + msg, 'error');
+                    // Restore previous avatar or icon
+                    @if (!string.IsNullOrEmpty(ViewBag.Admin.AvatarUrl))
+                    {
+                        <text>$('#avatarPreview').html('<img src="@ViewBag.Admin.AvatarUrl" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar" />');</text>
+                    }
+                    else
+                    {
+                        <text>$('#avatarPreview').html('<i class="fa-solid fa-user-shield"></i>');</text>
+                    }
+                });
+            });
+        });
+    </script>
+}
+
