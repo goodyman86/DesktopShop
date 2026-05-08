@@ -308,60 +308,543 @@ DesktopShop
 
 ---
 
-## 4. Test API (Dành Cho QA Nâng Cao)
+## 4. Test Tích Hợp API
 
-Dùng **Postman** hoặc **Swagger** (`http://localhost:5001/swagger`) để test API trực tiếp.
+Test tích hợp kiểm tra **toàn bộ luồng dữ liệu** từ HTTP request → Controller → Service → Database → HTTP response. Không mock, dùng dữ liệu thật.
 
-### Danh sách endpoint cần test
+---
 
-```
-# Products
-GET    /api/products                        - Lấy tất cả sản phẩm
-GET    /api/products/{id}                   - Lấy sản phẩm theo ID
-GET    /api/products/category/{categoryId}  - Lấy sản phẩm theo danh mục
-GET    /api/products/low-stock              - Lấy sản phẩm sắp hết hàng
-GET    /api/products/search?keyword=...     - Tìm kiếm sản phẩm
-POST   /api/products                        - Tạo sản phẩm mới
-PUT    /api/products/{id}                   - Cập nhật sản phẩm
-DELETE /api/products/{id}                   - Xóa sản phẩm
-POST   /api/products/upload-image           - Upload ảnh sản phẩm
+### 4.1 Chuẩn Bị Môi Trường
 
-# Categories
-GET    /api/categories                      - Lấy tất cả danh mục
-GET    /api/categories/active               - Lấy danh mục đang active
-GET    /api/categories/{id}                 - Lấy danh mục theo ID
-POST   /api/categories                      - Tạo danh mục mới
-PUT    /api/categories/{id}                 - Cập nhật danh mục
-DELETE /api/categories/{id}                 - Xóa danh mục
+#### Bước 1 — Khởi động API server
 
-# Orders
-GET    /api/orders                          - Lấy tất cả đơn hàng
-GET    /api/orders/{id}                     - Lấy đơn hàng theo ID
-POST   /api/orders                          - Tạo đơn hàng
-PUT    /api/orders/{id}                     - Cập nhật đơn hàng
-PATCH  /api/orders/{id}/status              - Cập nhật chỉ trạng thái
-DELETE /api/orders/{id}                     - Xóa đơn hàng
-GET    /api/orders/by-date?from=...&to=...  - Đơn hàng theo khoảng ngày
+Mở terminal, chạy lệnh sau:
 
-# Dashboard
-GET    /api/dashboard/summary               - Thống kê tổng quan
-GET    /api/dashboard/sales-chart?months=6  - Biểu đồ doanh thu (mặc định 6 tháng)
-GET    /api/dashboard/revenue-by-date?date=...       - Doanh thu ngày cụ thể
-GET    /api/dashboard/revenue-by-range?from=...&to=... - Doanh thu theo khoảng
-
-# Users
-POST   /api/users/upload-avatar             - Upload avatar người dùng
+```bash
+cd DesktopShop/src/DesktopShop.API
+dotnet run
 ```
 
-### Các HTTP status code cần kiểm tra
+API sẽ chạy tại: `http://localhost:5001`
+
+> Kiểm tra API đã sống: mở trình duyệt vào `http://localhost:5001/swagger` — nếu thấy giao diện Swagger là thành công.
+
+#### Bước 2 — Chọn công cụ test
+
+| Công cụ | Phù hợp | Tải về |
+|---|---|---|
+| **Swagger UI** | Nhanh, không cần cài, thao tác trực tiếp trên web | Tự có tại `http://localhost:5001/swagger` |
+| **Postman** | Lưu collection, chạy nhiều test, xuất báo cáo | https://www.postman.com/downloads |
+
+#### Bước 3 — Thiết lập Postman (nếu dùng Postman)
+
+1. Mở Postman → Click **New Collection** → Đặt tên `DesktopShop API`
+2. Click vào collection → Tab **Variables** → Thêm biến:
+
+| Variable | Initial Value | Ghi chú |
+|---|---|---|
+| `base_url` | `http://localhost:5001` | URL gốc của API |
+| `product_id` | `1` | ID sản phẩm dùng để test |
+| `category_id` | `1` | ID danh mục dùng để test |
+| `order_id` | `1` | ID đơn hàng dùng để test |
+
+3. Trong mỗi request, dùng `{{base_url}}` thay cho `http://localhost:5001`
+
+---
+
+### 4.2 Test Tích Hợp — Categories API
+
+#### IT-CAT-01: Lấy tất cả danh mục
+
+```
+Method : GET
+URL    : {{base_url}}/api/categories
+Headers: Content-Type: application/json
+Body   : (không có)
+```
+
+**Kết quả mong đợi:**
+```json
+Status: 200 OK
+Body:
+[
+  {
+    "id": 1,
+    "name": "Gaming PC",
+    "description": "Máy tính gaming hiệu năng cao",
+    "isActive": true
+  }
+]
+```
+
+**Điểm kiểm tra:**
+- Status code = 200
+- Trả về mảng (array), không phải null
+- Mỗi phần tử có đủ các trường: `id`, `name`, `isActive`
+
+---
+
+#### IT-CAT-02: Lấy danh mục đang hoạt động
+
+```
+Method : GET
+URL    : {{base_url}}/api/categories/active
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Tất cả phần tử trả về có `isActive: true`
+- Không có danh mục đã bị vô hiệu hóa
+
+---
+
+#### IT-CAT-03: Tạo danh mục mới
+
+```
+Method : POST
+URL    : {{base_url}}/api/categories
+Headers: Content-Type: application/json
+Body (raw JSON):
+{
+  "name": "Workstation",
+  "description": "Máy trạm làm việc chuyên nghiệp",
+  "isActive": true
+}
+```
+
+**Kết quả mong đợi:**
+```json
+Status: 201 Created
+Body:
+{
+  "id": 3,
+  "name": "Workstation",
+  "description": "Máy trạm làm việc chuyên nghiệp",
+  "isActive": true
+}
+```
+
+**Sau khi chạy:** Lưu `id` trả về vào biến `category_id` để dùng cho các test tiếp theo.
+
+---
+
+#### IT-CAT-04: Tạo danh mục thiếu tên (validation)
+
+```
+Method : POST
+URL    : {{base_url}}/api/categories
+Body:
+{
+  "name": "",
+  "description": "Test"
+}
+```
+
+**Kết quả mong đợi:**
+- Status = `400 Bad Request`
+- Body chứa thông báo lỗi về trường `name`
+
+---
+
+#### IT-CAT-05: Xóa danh mục
+
+```
+Method : DELETE
+URL    : {{base_url}}/api/categories/{{category_id}}
+```
+
+**Kết quả mong đợi:**
+- Status = `204 No Content`
+- Gọi lại `GET /api/categories/{{category_id}}` → nhận `404 Not Found`
+
+---
+
+### 4.3 Test Tích Hợp — Products API
+
+#### IT-PRD-01: Lấy tất cả sản phẩm
+
+```
+Method : GET
+URL    : {{base_url}}/api/products
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Mảng sản phẩm, mỗi phần tử có: `id`, `name`, `price`, `stockQuantity`, `isActive`
+
+---
+
+#### IT-PRD-02: Tìm kiếm sản phẩm
+
+```
+Method : GET
+URL    : {{base_url}}/api/products/search?keyword=gaming
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Tất cả sản phẩm trả về có tên hoặc mô tả chứa từ khóa "gaming"
+
+---
+
+#### IT-PRD-03: Lấy sản phẩm sắp hết hàng
+
+```
+Method : GET
+URL    : {{base_url}}/api/products/low-stock
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Tất cả sản phẩm trả về có `stockQuantity <= minStockLevel` (mặc định minStockLevel = 5)
+
+---
+
+#### IT-PRD-04: Tạo sản phẩm mới
+
+```
+Method : POST
+URL    : {{base_url}}/api/products
+Headers: Content-Type: application/json
+Body:
+{
+  "name": "Dell XPS Desktop 8960",
+  "categoryId": 1,
+  "cpu": "Intel Core i7-13700K",
+  "ram": "32GB DDR5",
+  "gpu": "NVIDIA RTX 4070",
+  "storage": "1TB NVMe SSD",
+  "price": 35000000,
+  "stockQuantity": 10,
+  "minStockLevel": 5,
+  "description": "Máy tính để bàn hiệu năng cao",
+  "isActive": true
+}
+```
+
+**Kết quả mong đợi:**
+```json
+Status: 201 Created
+Body:
+{
+  "id": 5,
+  "name": "Dell XPS Desktop 8960",
+  "price": 35000000,
+  "stockQuantity": 10,
+  ...
+}
+```
+
+**Sau khi chạy:** Lưu `id` vào biến `product_id`.
+
+---
+
+#### IT-PRD-05: Tạo sản phẩm với giá âm (validation)
+
+```
+Body:
+{
+  "name": "Test Product",
+  "categoryId": 1,
+  "price": -1000,
+  "stockQuantity": 5
+}
+```
+
+**Kết quả mong đợi:** Status `400 Bad Request`
+
+---
+
+#### IT-PRD-06: Cập nhật sản phẩm
+
+```
+Method : PUT
+URL    : {{base_url}}/api/products/{{product_id}}
+Body:
+{
+  "id": {{product_id}},
+  "name": "Dell XPS Desktop 8960 - Updated",
+  "categoryId": 1,
+  "price": 36000000,
+  "stockQuantity": 8,
+  "minStockLevel": 5,
+  "isActive": true
+}
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Trường `name` và `price` trong response đã được cập nhật
+
+---
+
+#### IT-PRD-07: Lấy sản phẩm không tồn tại
+
+```
+Method : GET
+URL    : {{base_url}}/api/products/99999
+```
+
+**Kết quả mong đợi:** Status `404 Not Found`
+
+---
+
+### 4.4 Test Tích Hợp — Orders API
+
+#### IT-ORD-01: Tạo đơn hàng thành công
+
+```
+Method : POST
+URL    : {{base_url}}/api/orders
+Headers: Content-Type: application/json
+Body:
+{
+  "customerName": "Nguyen Van A",
+  "customerPhone": "0901234567",
+  "customerEmail": "nguyenvana@email.com",
+  "shippingAddress": "123 Nguyen Hue, Q1, TP.HCM",
+  "notes": "Giao giờ hành chính",
+  "paymentMethod": 0,
+  "items": [
+    {
+      "productId": {{product_id}},
+      "quantity": 2
+    }
+  ]
+}
+```
+
+> **Giá trị paymentMethod:** `0` = Tiền mặt, `1` = Chuyển khoản, `2` = Thẻ tín dụng, `3` = Ví điện tử
+
+**Kết quả mong đợi:**
+```json
+Status: 201 Created
+Body:
+{
+  "id": 1,
+  "orderCode": "ORD-20260508-XXXX",
+  "customerName": "Nguyen Van A",
+  "totalAmount": 72000000,
+  "status": 0,
+  "paymentMethod": 0,
+  "orderDetails": [...]
+}
+```
+
+**Kiểm tra thêm sau khi tạo:**
+1. Gọi `GET /api/products/{{product_id}}` → `stockQuantity` phải giảm đúng số lượng đã đặt (giảm 2)
+2. Lưu `id` đơn hàng vào biến `order_id`
+
+---
+
+#### IT-ORD-02: Tạo đơn hàng vượt tồn kho
+
+```
+Body:
+{
+  "customerName": "Test User",
+  "shippingAddress": "Test Address",
+  "paymentMethod": 0,
+  "items": [
+    {
+      "productId": {{product_id}},
+      "quantity": 99999
+    }
+  ]
+}
+```
+
+**Kết quả mong đợi:**
+- Status `400 Bad Request`
+- Body chứa thông báo lỗi về không đủ tồn kho
+- Kiểm tra database: tồn kho sản phẩm KHÔNG thay đổi (transaction rollback)
+
+---
+
+#### IT-ORD-03: Cập nhật trạng thái đơn hàng — Pending → Confirmed
+
+```
+Method : PATCH
+URL    : {{base_url}}/api/orders/{{order_id}}/status
+Body:
+{
+  "status": 1
+}
+```
+
+> **Giá trị status:** `0` = Pending, `1` = Confirmed, `2` = Completed, `3` = Cancelled
+
+**Kết quả mong đợi:**
+- Status `204 No Content`
+- Gọi `GET /api/orders/{{order_id}}` → trường `status` = 1
+
+---
+
+#### IT-ORD-04: Cập nhật trạng thái — Confirmed → Completed
+
+```
+Method : PATCH
+URL    : {{base_url}}/api/orders/{{order_id}}/status
+Body:
+{
+  "status": 2
+}
+```
+
+**Kết quả mong đợi:** Status `204 No Content`, đơn hàng có `status` = 2
+
+---
+
+#### IT-ORD-05: Lọc đơn hàng theo khoảng ngày
+
+```
+Method : GET
+URL    : {{base_url}}/api/orders/by-date?from=2026-01-01&to=2026-12-31
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Tất cả đơn hàng trả về có `createdAt` nằm trong khoảng 2026-01-01 đến 2026-12-31
+
+---
+
+#### IT-ORD-06: Xóa đơn hàng
+
+```
+Method : DELETE
+URL    : {{base_url}}/api/orders/{{order_id}}
+```
+
+**Kết quả mong đợi:**
+- Status `204 No Content`
+- Gọi `GET /api/orders/{{order_id}}` → nhận `404 Not Found`
+
+---
+
+### 4.5 Test Tích Hợp — Dashboard API
+
+#### IT-DB-01: Lấy thống kê tổng quan
+
+```
+Method : GET
+URL    : {{base_url}}/api/dashboard/summary
+```
+
+**Kết quả mong đợi:**
+```json
+Status: 200 OK
+Body:
+{
+  "totalRevenue": 72000000,
+  "totalOrders": 5,
+  "totalProducts": 10,
+  "totalCategories": 3
+}
+```
+
+**Kiểm tra:** Các con số phải khớp với dữ liệu thực trong database.
+
+---
+
+#### IT-DB-02: Biểu đồ doanh thu 6 tháng
+
+```
+Method : GET
+URL    : {{base_url}}/api/dashboard/sales-chart?months=6
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Trả về mảng 6 phần tử, mỗi phần tử có `month` và `revenue`
+
+---
+
+#### IT-DB-03: Doanh thu theo ngày cụ thể
+
+```
+Method : GET
+URL    : {{base_url}}/api/dashboard/revenue-by-date?date=2026-05-08
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Trả về tổng doanh thu của ngày 2026-05-08
+
+---
+
+#### IT-DB-04: Doanh thu theo khoảng ngày
+
+```
+Method : GET
+URL    : {{base_url}}/api/dashboard/revenue-by-range?from=2026-05-01&to=2026-05-31
+```
+
+**Kết quả mong đợi:**
+- Status 200
+- Tổng doanh thu = tổng `totalAmount` của tất cả đơn có trạng thái Completed trong tháng 5/2026
+
+---
+
+### 4.6 Các HTTP Status Code Cần Kiểm Tra
 
 | Mã | Ý nghĩa | Khi nào xảy ra |
 |---|---|---|
 | 200 OK | Thành công | GET, PUT thành công |
 | 201 Created | Tạo thành công | POST thành công |
-| 400 Bad Request | Dữ liệu không hợp lệ | Validation lỗi |
+| 204 No Content | Xử lý xong, không có nội dung trả về | DELETE, PATCH status thành công |
+| 400 Bad Request | Dữ liệu không hợp lệ | Validation lỗi, ID không khớp, hết hàng |
 | 404 Not Found | Không tìm thấy | ID không tồn tại |
 | 500 Internal Server Error | Lỗi server | Ngoại lệ chưa xử lý |
+
+---
+
+### 4.7 Thứ Tự Chạy Test Tích Hợp Đề Xuất
+
+Chạy theo thứ tự sau để tránh phụ thuộc dữ liệu:
+
+```
+1. IT-CAT-01  → Xác nhận có danh mục trong DB
+2. IT-CAT-03  → Tạo danh mục mới, lấy category_id
+3. IT-PRD-04  → Tạo sản phẩm với category_id vừa tạo, lấy product_id
+4. IT-PRD-01  → Kiểm tra sản phẩm xuất hiện trong danh sách
+5. IT-PRD-02  → Tìm kiếm sản phẩm vừa tạo
+6. IT-ORD-01  → Tạo đơn hàng với product_id, lấy order_id
+7. IT-PRD-06  → Kiểm tra stockQuantity đã giảm
+8. IT-ORD-03  → Cập nhật đơn hàng Pending → Confirmed
+9. IT-ORD-04  → Cập nhật đơn hàng Confirmed → Completed
+10. IT-DB-01  → Kiểm tra dashboard summary cập nhật đúng
+11. IT-ORD-06 → Xóa đơn hàng test
+12. IT-PRD-07 → Xóa sản phẩm test (nếu cần)
+13. IT-CAT-05 → Xóa danh mục test
+```
+
+---
+
+### 4.8 Kiểm Tra Tính Toàn Vẹn Giao Dịch (Transaction)
+
+Đây là test quan trọng nhất — kiểm tra **toàn bộ transaction** khi tạo đơn hàng không được thực hiện nửa chừng.
+
+**Kịch bản:** Đặt hàng với một sản phẩm hợp lệ và một sản phẩm hết hàng cùng lúc.
+
+```
+Method : POST
+URL    : {{base_url}}/api/orders
+Body:
+{
+  "customerName": "Test Transaction",
+  "shippingAddress": "123 Test Street",
+  "paymentMethod": 0,
+  "items": [
+    { "productId": {{product_id_con_hang}}, "quantity": 1 },
+    { "productId": {{product_id_het_hang}}, "quantity": 1 }
+  ]
+}
+```
+
+**Kết quả mong đợi:**
+- Status `400 Bad Request`
+- Không có đơn hàng nào được tạo trong database
+- Tồn kho của sản phẩm còn hàng **không thay đổi** (rollback toàn bộ)
 
 ---
 
