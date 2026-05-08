@@ -1,3 +1,5 @@
+using System.IO;
+using System.Web;
 using System.Web.Mvc;
 using WebApplication1.Filters;
 
@@ -6,6 +8,16 @@ namespace WebApplication1.Controllers
     [AdminAuthFilter]
     public class DashboardViewController : Controller
     {
+        public ActionResult DownloadQADoc()
+        {
+            string filePath = HttpContext.Server.MapPath("~/fresher-qa.md");
+            if (!System.IO.File.Exists(filePath))
+                return HttpNotFound("Không tìm thấy file tài liệu QA.");
+
+            byte[] fileBytes = System.IO.File.ReadAllBytes(filePath);
+            return File(fileBytes, "text/markdown", "fresher-qa.md");
+        }
+
         public ActionResult Index()
         {
             ViewBag.Title = "Dashboard";
