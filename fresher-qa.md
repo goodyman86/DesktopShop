@@ -316,27 +316,93 @@ Test tích hợp kiểm tra **toàn bộ luồng dữ liệu** từ HTTP request
 
 ### 4.1 Chuẩn Bị Môi Trường
 
-#### Bước 1 — Khởi động API server
+#### Yêu cầu hệ thống
 
-Mở terminal, chạy lệnh sau:
+| Phần mềm | Phiên bản | Tải về |
+|---|---|---|
+| **Windows** | 10 / 11 (64-bit) | Bắt buộc — dự án dùng ASP.NET MVC 5 + IIS |
+| **.NET 8 SDK** | 8.0 trở lên | https://dotnet.microsoft.com/download/dotnet/8 |
+| **SQL Server** | LocalDB hoặc SQLEXPRESS | Cài kèm Visual Studio hoặc tải riêng |
+| **Visual Studio** | 2022 (Community miễn phí) | https://visualstudio.microsoft.com |
+| **Postman** | Bất kỳ | https://www.postman.com/downloads |
 
-```bash
-cd DesktopShop/src/DesktopShop.API
+> **Lưu ý:** Dự án không chạy được trên macOS/Linux vì phần MVC 5 yêu cầu IIS Express trên Windows.
+
+---
+
+#### Bước 1 — Cài .NET 8 SDK
+
+1. Tải tại: https://dotnet.microsoft.com/download/dotnet/8
+2. Chọn **Windows x64 → SDK → Installer**
+3. Cài đặt theo hướng dẫn, sau đó mở **Command Prompt** kiểm tra:
+
+```cmd
+dotnet --version
+```
+
+Kết quả mong đợi: `8.x.x` (ví dụ: `8.0.404`)
+
+---
+
+#### Bước 2 — Thiết lập Database
+
+Mở **SQL Server Management Studio (SSMS)** hoặc dùng lệnh sau để tạo database:
+
+```cmd
+cd DesktopShop\src\DesktopShop.Infrastructure
+dotnet ef database update --startup-project ..\DesktopShop.API
+```
+
+Hoặc nếu dùng Visual Studio: mở **Package Manager Console** và chạy:
+
+```
+Update-Database
+```
+
+Kết nối mặc định: `Server=(localdb)\mssqllocaldb;Database=DesktopShopDb`
+
+> Nếu dùng SQL Express, sửa file `DesktopShop\src\DesktopShop.API\appsettings.json`:
+> ```json
+> "DefaultConnection": "Server=.\\SQLEXPRESS;Database=DesktopShopDb;Trusted_Connection=True"
+> ```
+
+---
+
+#### Bước 3 — Khởi động API (.NET 8)
+
+Mở **Command Prompt** hoặc **PowerShell**, chạy:
+
+```cmd
+cd DesktopShop\src\DesktopShop.API
 dotnet run
 ```
 
-API sẽ chạy tại: `http://localhost:5001`
+Kết quả thành công trông như sau:
 
-> Kiểm tra API đã sống: mở trình duyệt vào `http://localhost:5001/swagger` — nếu thấy giao diện Swagger là thành công.
+```
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5001
+info: Microsoft.Hosting.Lifetime[0]
+      Application started.
+```
 
-#### Bước 2 — Chọn công cụ test
+Mở trình duyệt vào: `http://localhost:5001/swagger`
 
-| Công cụ | Phù hợp | Tải về |
-|---|---|---|
-| **Swagger UI** | Nhanh, không cần cài, thao tác trực tiếp trên web | Tự có tại `http://localhost:5001/swagger` |
-| **Postman** | Lưu collection, chạy nhiều test, xuất báo cáo | https://www.postman.com/downloads |
+Nếu thấy giao diện Swagger với danh sách API là **thành công**.
 
-#### Bước 3 — Thiết lập Postman (nếu dùng Postman)
+---
+
+#### Bước 4 — Khởi động Web MVC (ASP.NET MVC 5)
+
+Mở **Visual Studio 2022** → Mở file `WebApplication1.sln` → Nhấn **F5** hoặc nút **IIS Express**.
+
+Web sẽ chạy tại `http://localhost:{port}` (thường là `http://localhost:44300` hoặc tương tự, Visual Studio thông báo khi khởi động).
+
+> **Chạy cùng lúc cả hai:** API chạy qua `dotnet run` ở terminal, Web MVC chạy qua Visual Studio. Hai tiến trình độc lập.
+
+---
+
+#### Bước 5 — Thiết lập Postman
 
 1. Mở Postman → Click **New Collection** → Đặt tên `DesktopShop API`
 2. Click vào collection → Tab **Variables** → Thêm biến:
@@ -349,6 +415,18 @@ API sẽ chạy tại: `http://localhost:5001`
 | `order_id` | `1` | ID đơn hàng dùng để test |
 
 3. Trong mỗi request, dùng `{{base_url}}` thay cho `http://localhost:5001`
+
+---
+
+#### Xử Lý Lỗi Thường Gặp
+
+| Lỗi | Nguyên nhân | Cách xử lý |
+|---|---|---|
+| `dotnet: command not found` | Chưa cài .NET SDK | Cài .NET 8 SDK, khởi động lại terminal |
+| `Unable to connect to database` | SQL Server chưa chạy | Mở Services → Bật `SQL Server (SQLEXPRESS)` hoặc `SQL Server (LOCALDB)` |
+| `Port 5001 already in use` | Cổng đã bị chiếm | Đổi port trong `launchSettings.json` hoặc tắt tiến trình đang dùng cổng 5001 |
+| Swagger hiển thị nhưng API trả về 500 | Migration chưa chạy | Chạy `dotnet ef database update` |
+| Visual Studio lỗi build | Thiếu NuGet package | Chuột phải vào Solution → **Restore NuGet Packages** |
 
 ---
 
